@@ -162,14 +162,39 @@ final class MetaBoxIntegration extends BaseIntegration {
      *
      * @param string $field_name Full field ID.
      * @param int    $post_id    Post ID.
+     * @param string $field_type Field type (optional).
      * @return mixed
      */
-    public static function get_field_value(string $field_name, int $post_id) {
+    public static function get_field_value(string $field_name, int $post_id, string $field_type = '') {
         if (function_exists('rwmb_get_value')) {
-            return rwmb_get_value($field_name, [], $post_id);
+            $value = rwmb_get_value($field_name, [], $post_id);
+        } else {
+            $value = get_post_meta($post_id, $field_name, true);
         }
 
-        return get_post_meta($post_id, $field_name, true);
+        // Handle image field types - extract URL from array
+        $image_types = ['single_image', 'image_advanced', 'image_upload', 'file', 'file_upload', 'file_advanced', 'image'];
+
+        if (in_array($field_type, $image_types, true) && is_array($value)) {
+            // For single_image, value is array with 'url' or 'full_url'
+            if (isset($value['full_url'])) {
+                return $value['full_url'];
+            }
+            if (isset($value['url'])) {
+                return $value['url'];
+            }
+            // For image_advanced/gallery, it's an array of images
+            if (isset($value[0]) && is_array($value[0])) {
+                if (isset($value[0]['full_url'])) {
+                    return $value[0]['full_url'];
+                }
+                if (isset($value[0]['url'])) {
+                    return $value[0]['url'];
+                }
+            }
+        }
+
+        return $value;
     }
 
     /**
@@ -244,7 +269,7 @@ final class MetaBoxIntegration extends BaseIntegration {
 
         foreach ($fields as $field) {
             if ($field['type'] === 'token' && $field['token_name'] === $tag_name) {
-                $value = self::get_field_value($field['full_field_name'], $post_id);
+                $value = self::get_field_value($field['full_field_name'], $post_id, $field['field_type'] ?? '');
                 return $value !== false ? (string) $value : '';
             }
         }
@@ -272,7 +297,7 @@ final class MetaBoxIntegration extends BaseIntegration {
             $tag = '{' . $field['token_name'] . '}';
 
             if (str_contains($content, $tag)) {
-                $value = self::get_field_value($field['full_field_name'], $post->ID);
+                $value = self::get_field_value($field['full_field_name'], $post->ID, $field['field_type'] ?? '');
                 $content = str_replace($tag, (string) $value, $content);
             }
         }
@@ -350,7 +375,7 @@ final class MetaBoxIntegration extends BaseIntegration {
                     return false;
                 }
 
-                $value = self::get_field_value($field['full_field_name'], $post_id);
+                $value = self::get_field_value($field['full_field_name'], $post_id, $field['field_type'] ?? '');
                 $compare_value = $condition['value'] ?? '';
                 $operator = $condition['compare'] ?? '==';
 

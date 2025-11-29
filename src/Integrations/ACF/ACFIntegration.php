@@ -156,14 +156,42 @@ final class ACFIntegration extends BaseIntegration {
      *
      * @param string $field_name Full field name.
      * @param int    $post_id    Post ID.
+     * @param string $field_type Field type (optional).
      * @return mixed
      */
-    public static function get_field_value(string $field_name, int $post_id) {
+    public static function get_field_value(string $field_name, int $post_id, string $field_type = '') {
         if (function_exists('get_field')) {
-            return get_field($field_name, $post_id);
+            $value = get_field($field_name, $post_id);
+        } else {
+            $value = get_post_meta($post_id, $field_name, true);
         }
 
-        return get_post_meta($post_id, $field_name, true);
+        // Handle image field types - extract URL from array
+        $image_types = ['image', 'gallery', 'file'];
+
+        if (in_array($field_type, $image_types, true) && is_array($value)) {
+            // For image field set to return array
+            if (isset($value['url'])) {
+                return $value['url'];
+            }
+            // For gallery, it's an array of images
+            if (isset($value[0]) && is_array($value[0]) && isset($value[0]['url'])) {
+                return $value[0]['url'];
+            }
+            // If value is numeric (attachment ID), get the URL
+            if (is_numeric($value)) {
+                $url = wp_get_attachment_url($value);
+                return $url ?: $value;
+            }
+        }
+
+        // Handle numeric values that might be attachment IDs for image types
+        if (in_array($field_type, $image_types, true) && is_numeric($value)) {
+            $url = wp_get_attachment_url($value);
+            return $url ?: $value;
+        }
+
+        return $value;
     }
 
     /**
@@ -242,7 +270,7 @@ final class ACFIntegration extends BaseIntegration {
 
         foreach ($fields as $field) {
             if ($field['type'] === 'token' && $field['token_name'] === $tag_name) {
-                $value = self::get_field_value($field['full_field_name'], $post_id);
+                $value = self::get_field_value($field['full_field_name'], $post_id, $field['field_type'] ?? '');
                 return $value !== false ? (string) $value : '';
             }
         }
@@ -270,7 +298,7 @@ final class ACFIntegration extends BaseIntegration {
             $tag = '{' . $field['token_name'] . '}';
 
             if (str_contains($content, $tag)) {
-                $value = self::get_field_value($field['full_field_name'], $post->ID);
+                $value = self::get_field_value($field['full_field_name'], $post->ID, $field['field_type'] ?? '');
                 $content = str_replace($tag, (string) $value, $content);
             }
         }
@@ -348,7 +376,7 @@ final class ACFIntegration extends BaseIntegration {
                     return false;
                 }
 
-                $value = self::get_field_value($field['full_field_name'], $post_id);
+                $value = self::get_field_value($field['full_field_name'], $post_id, $field['field_type'] ?? '');
                 $compare_value = $condition['value'] ?? '';
                 $operator = $condition['compare'] ?? '==';
 

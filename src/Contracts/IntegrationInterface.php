@@ -48,7 +48,8 @@ interface IntegrationInterface {
      *
      * @param string $field_name Full field name/ID.
      * @param int    $post_id    Post ID.
+     * @param string $field_type Field type (optional, for handling special field types like images).
      * @return mixed
      */
-    public static function get_field_value(string $field_name, int $post_id);
+    public static function get_field_value(string $field_name, int $post_id, string $field_type = '');
 }

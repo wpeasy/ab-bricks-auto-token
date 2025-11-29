@@ -32,7 +32,7 @@ final class InstructionsPage {
     public static function add_plugin_links(array $links): array {
         $instructions_link = sprintf(
             '<a href="%s">%s</a>',
-            admin_url('options-general.php?page=ab-bricks-auto-token'),
+            admin_url('admin.php?page=ab-bricks-auto-token'),
             esc_html__('Instructions', 'ab-bricks-auto-token')
         );
 
@@ -46,12 +46,14 @@ final class InstructionsPage {
      * @return void
      */
     public static function add_menu_page(): void {
-        add_options_page(
+        add_menu_page(
             __('AB Bricks Auto Token Instructions', 'ab-bricks-auto-token'),
             __('Bricks Auto Token', 'ab-bricks-auto-token'),
             'manage_options',
             'ab-bricks-auto-token',
-            [self::class, 'render_page']
+            [self::class, 'render_page'],
+            'dashicons-admin-generic',
+            30
         );
     }
 

@@ -14,7 +14,7 @@
     },
     "autoload": {
         "psr-4": {
-            "AB\\BricksAutoToken\\": "includes/"
+            "AB\\BricksAutoToken\\": "src/"
         }
     },
     "config": {

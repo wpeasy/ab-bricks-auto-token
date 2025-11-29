@@ -49,8 +49,8 @@ See [CLAUDE.md](CLAUDE.md) for detailed code style guidelines and development st
 
 ### Code Structure
 
-- `includes/` - Core plugin classes
-- `integrations/` - Integration modules for ACF and MetaBox
+- `src/` - Core plugin classes (PSR-4 autoloaded)
+- `src/Integrations/` - Integration modules for ACF and MetaBox
 - `assets/` - CSS and JavaScript files
 - `languages/` - Translation files
 

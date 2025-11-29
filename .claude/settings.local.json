@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nAdd WordPress plugin starter structure\n\n- Created main plugin file with proper WordPress headers\n- Set up Composer with PSR-4 autoloading for AB\\BricksAutoToken namespace\n- Created main Plugin class with dependency checks\n- Added directory structure for includes, integrations, assets, and languages\n- Added comprehensive README.md and .gitignore\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd WordPress plugin starter structure\n\n- Created main plugin file with proper WordPress headers\n- Set up Composer with PSR-4 autoloading for AB\\BricksAutoToken namespace\n- Created main Plugin class with dependency checks\n- Added directory structure for includes, integrations, assets, and languages\n- Added comprehensive README.md and .gitignore\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(composer dump-autoload:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

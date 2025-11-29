@@ -269,7 +269,20 @@ final class MetaBoxIntegration extends BaseIntegration {
 
         foreach ($fields as $field) {
             if ($field['type'] === 'token' && $field['token_name'] === $tag_name) {
-                $value = self::get_field_value($field['full_field_name'], $post_id, $field['field_type'] ?? '');
+                $field_type = $field['field_type'] ?? '';
+
+                // For image context, get the raw value (don't extract URL)
+                if ($context === 'image') {
+                    $value = function_exists('rwmb_get_value')
+                        ? rwmb_get_value($field['full_field_name'], [], $post_id)
+                        : get_post_meta($post_id, $field['full_field_name'], true);
+
+                    // Return the value as-is for Bricks to handle
+                    return $value;
+                }
+
+                // For non-image contexts, extract URL if needed
+                $value = self::get_field_value($field['full_field_name'], $post_id, $field_type);
                 return $value !== false ? (string) $value : '';
             }
         }

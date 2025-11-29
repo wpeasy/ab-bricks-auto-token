@@ -2,23 +2,25 @@
 
 ## Overview
 
-This document explains the auto-discovery system that automatically generates Bricks Builder dynamic data tags (tokens) and conditionals based on ACF field naming conventions. This allows you to create custom Bricks tokens and conditionals without writing PHP code for each one.
+This document explains the auto-discovery system that automatically generates Bricks Builder dynamic data tags (tokens) and conditionals based on ACF and MetaBox field naming conventions. This allows you to create custom Bricks tokens and conditionals without writing PHP code for each one.
 
 ## Purpose
 
 The auto-discovery system:
-- Automatically creates Bricks dynamic data tags from ACF fields
-- Automatically creates Bricks conditionals from ACF fields
+- Automatically creates Bricks dynamic data tags from ACF and MetaBox fields
+- Automatically creates Bricks conditionals from ACF and MetaBox fields
 - Eliminates the need to hardcode individual tokens and conditionals
 - Provides a consistent naming pattern for developers
-- Dynamically adapts as you add/modify ACF fields
+- Dynamically adapts as you add/modify ACF or MetaBox fields
 
 ## Requirements
 
 ### WordPress Plugins
-- Advanced Custom Fields (ACF) Pro
 - Bricks Builder
-- PHP 8.0+
+- At least one of:
+  - Advanced Custom Fields (ACF) or ACF Pro
+  - MetaBox
+- PHP 7.4+ (8.0+ recommended)
 
 ### WordPress Hooks Used
 - `bricks/dynamic_tags_list` - Register dynamic data tags
@@ -53,6 +55,7 @@ field_name__post_type__token__condition
 **Example 1: Token Only**
 ```
 ACF Field Name: program_name__brand__token
+MetaBox Field ID: program_name__brand__token
 
 Creates:
   Token: {brand_program_name}
@@ -63,6 +66,7 @@ Creates:
 **Example 2: Condition Only**
 ```
 ACF Field Name: is_featured__event__condition
+MetaBox Field ID: is_featured__event__condition
 
 Creates:
   Conditional: "Is Featured"
@@ -73,6 +77,7 @@ Creates:
 **Example 3: Both Token and Condition**
 ```
 ACF Field Name: company_url__brand__token__condition
+MetaBox Field ID: company_url__brand__token__condition
 
 Creates:
   Token: {brand_company_url}
@@ -85,13 +90,23 @@ Creates:
 
 ### 1. Field Discovery
 
-The system scans all ACF field groups and:
+The system scans all field groups from both ACF and MetaBox:
+
+#### ACF Field Discovery
 1. Gets all field groups using `acf_get_field_groups()`
 2. For each group, gets all fields using `acf_get_fields($group['key'])`
 3. Parses each field name for the pattern `field_name__post_type__token|condition`
 4. Extracts post types from both:
    - The field name pattern
    - The field group's location rules (for multi-post-type support)
+
+#### MetaBox Field Discovery
+1. Gets all meta boxes using `rwmb_get_registry('meta_box')->all()`
+2. For each meta box, gets all fields from the configuration
+3. Parses each field ID for the pattern `field_name__post_type__token|condition`
+4. Extracts post types from both:
+   - The field ID pattern
+   - The meta box's `post_types` configuration array
 
 ### 2. Token Generation
 
@@ -110,10 +125,13 @@ When Bricks encounters a token like `{brand_program_name}`:
 1. `render_tag()` is called via `bricks/dynamic_data/render_tag` filter
 2. System checks if token matches any auto-discovered fields
 3. Gets the current post ID from context
-4. Retrieves value using the **full ACF field name** (e.g., `program_name__brand__token`)
-5. Returns the field value (tries `get_field()` first, falls back to `get_post_meta()`)
+4. Retrieves value using the **full field name/ID** (e.g., `program_name__brand__token`)
+   - **ACF fields:** Uses `get_field()` with the full field name
+   - **MetaBox fields:** Uses `rwmb_get_value()` with the full field ID
+   - Falls back to `get_post_meta()` if neither is available
+5. Returns the field value
 
-**Important:** The system uses the full field name (with `__token`) to retrieve values from the database, not just the base field name.
+**Important:** The system uses the full field name/ID (with `__token`) to retrieve values from the database, not just the base field name.
 
 ### 4. Conditional Generation
 
@@ -122,9 +140,10 @@ For fields with `__condition` in the name:
    - Example: `wfh_auto_brand_program_name`
 2. Label is auto-generated from field name
 3. Group key is: `wfh_auto_{post_type}`
-4. Compare options are determined by ACF field type:
-   - **Boolean fields (`true_false`)**: `is true`, `is false`
-   - **All other fields**: `equals`, `not equals`, `contains`, `is empty`, `is not empty`
+4. Compare options are determined by field type:
+   - **ACF Boolean fields (`true_false`)**: `is true`, `is false`
+   - **MetaBox Checkbox fields (`checkbox`)**: `is true`, `is false`
+   - **All other field types**: `equals`, `not equals`, `contains`, `is empty`, `is not empty`
 
 ### 5. Conditional Evaluation
 
@@ -132,7 +151,10 @@ When Bricks evaluates a conditional:
 1. `evaluate_conditional()` is called via `bricks/conditions/result` filter
 2. System checks if conditional key matches any auto-discovered fields
 3. Gets the current post ID
-4. Retrieves value using the **full ACF field name** (e.g., `program_name__brand__condition`)
+4. Retrieves value using the **full field name/ID** (e.g., `program_name__brand__condition`)
+   - **ACF fields:** Uses `get_field()` with the full field name
+   - **MetaBox fields:** Uses `rwmb_get_value()` with the full field ID
+   - Falls back to `get_post_meta()` if neither is available
 5. Compares value based on operator:
    - `==` - Loose equality
    - `!=` - Loose inequality
@@ -142,12 +164,21 @@ When Bricks evaluates a conditional:
 
 ### 6. Multiple Post Types
 
-If a field group is assigned to multiple post types via location rules:
+If a field group/meta box is assigned to multiple post types:
 - The system creates tokens/conditionals for **each** post type
-- Example:
+- **ACF Example:**
   ```
   ACF Field Name: sponsor_name__sponsor__token
   Field Group Location: post_type == sponsor AND post_type == brand
+
+  Creates:
+    {sponsor_sponsor_name} - for sponsor post type
+    {brand_sponsor_name} - for brand post type
+  ```
+- **MetaBox Example:**
+  ```
+  MetaBox Field ID: sponsor_name__sponsor__token
+  Meta Box post_types: ['sponsor', 'brand']
 
   Creates:
     {sponsor_sponsor_name} - for sponsor post type
@@ -192,16 +223,25 @@ final class BricksIntegration {
 
 ### Core Methods Explained
 
-#### `get_auto_discovered_fields()` - Line 669-749
+#### `get_auto_discovered_fields()`
 
 This is the heart of the system. It:
 1. Returns cached results if available (performance optimization)
-2. Gets all ACF field groups via `acf_get_field_groups()`
-3. For each group:
-   - Gets all fields in the group
+2. Discovers fields from both ACF and MetaBox:
+
+   **ACF Discovery:**
+   - Gets all ACF field groups via `acf_get_field_groups()`
+   - For each group, gets all fields via `acf_get_fields($group['key'])`
    - Gets post types from location rules
    - Parses each field name for the pattern
-   - Creates entry for each discovered token/conditional
+
+   **MetaBox Discovery:**
+   - Gets all meta boxes via `rwmb_get_registry('meta_box')->all()`
+   - For each meta box, gets all fields from configuration
+   - Gets post types from the `post_types` array
+   - Parses each field ID for the pattern
+
+3. Creates entry for each discovered token/conditional
 4. Builds a structured array with all metadata needed
 5. Caches the results for subsequent calls
 
@@ -347,14 +387,24 @@ private static function get_auto_discovered_fields(): array {
 
 ### 2. Field Name Storage
 
-**Critical:** ACF stores field values using the full field name as the meta key. When retrieving values, always use the full field name:
+**Critical:** Both ACF and MetaBox store field values using the full field name/ID as the meta key. When retrieving values, always use the full field name/ID:
 
+**ACF Example:**
 ```php
 // CORRECT - uses full field name
 $value = get_field('program_name__brand__token', $post_id);
 
 // INCORRECT - won't find the value
 $value = get_field('program_name', $post_id);
+```
+
+**MetaBox Example:**
+```php
+// CORRECT - uses full field ID
+$value = rwmb_get_value('program_name__brand__token', [], $post_id);
+
+// INCORRECT - won't find the value
+$value = rwmb_get_value('program_name', [], $post_id);
 ```
 
 ### 3. Pattern Parsing
@@ -403,12 +453,30 @@ The `render_content()` method handles tags within larger content blocks and supp
 
 ## Testing the Implementation
 
-### 1. Create a Test ACF Field
+### 1. Create a Test Field
 
+**For ACF:**
 In ACF, create a field group with:
 - **Field Name:** `test_value__brand__token__condition`
 - **Field Type:** Text
 - **Location:** Post Type is equal to Brand
+
+**For MetaBox:**
+Register a meta box with:
+```php
+[
+    'id' => 'test_meta_box',
+    'title' => 'Test Fields',
+    'post_types' => ['brand'],
+    'fields' => [
+        [
+            'id' => 'test_value__brand__token__condition',
+            'type' => 'text',
+            'name' => 'Test Value',
+        ],
+    ],
+]
+```
 
 ### 2. Test Token
 
@@ -431,17 +499,21 @@ In Bricks:
 
 ### Tokens Not Appearing
 
-1. Check ACF field name follows pattern exactly
-2. Verify ACF is active and field group published
+1. Check field name/ID follows pattern exactly
+2. Verify ACF or MetaBox is active and field group/meta box is registered
 3. Clear any caching (object cache, page cache)
-4. Check if `acf_get_field_groups()` function exists
+4. Check if either `acf_get_field_groups()` or `rwmb_get_registry()` function exists
+5. For MetaBox, ensure the meta box is properly registered via `rwmb_meta_boxes` filter
 
 ### Values Not Displaying
 
-1. Verify you're using the **full field name** in `get_field()`
+1. Verify you're using the **full field name/ID** to retrieve values
+   - **ACF:** Use `get_field('full_field_name__post_type__token', $post_id)`
+   - **MetaBox:** Use `rwmb_get_value('full_field_id__post_type__token', [], $post_id)`
 2. Check the post has the field value saved
 3. Confirm you're on the correct post type
-4. Check ACF field storage format (meta vs options)
+4. Check field storage format (meta vs options)
+5. For MetaBox, ensure proper args array is passed to `rwmb_get_value()`
 
 ### Conditionals Not Working
 
@@ -554,13 +626,26 @@ $tags[] = [
 
 // In render method
 if ($tag === 'brand_program_name') {
-    return get_field('program_name', $post_id);
+    return get_field('program_name', $post_id);  // ACF
+    // OR
+    return rwmb_get_value('program_name', [], $post_id);  // MetaBox
 }
 ```
 
 ### After (Auto-Discovery)
+
+**For ACF:**
 ```
 ACF Field Name: program_name__brand__token
+```
+
+**For MetaBox:**
+```php
+[
+    'id' => 'program_name__brand__token',
+    'type' => 'text',
+    'name' => 'Program Name',
+]
 ```
 
 That's it! The token is automatically created and rendered.
@@ -570,18 +655,30 @@ That's it! The token is automatically created and rendered.
 The auto-discovery system provides:
 - **Automatic token creation** - No PHP code needed for each token
 - **Automatic conditional creation** - Conditionals generated from same fields
+- **Dual plugin support** - Works with both ACF and MetaBox
 - **Consistent naming** - Pattern-based approach ensures consistency
 - **Multi-post-type support** - One field can create tokens for multiple CPTs
 - **Performance** - Cached results, minimal database queries
 - **Flexibility** - Mix auto-discovered and manual tokens/conditionals
 
-By following the naming pattern `field_name__post_type__token|condition`, you can rapidly create Bricks dynamic data tags and conditionals without touching PHP code for each addition.
+By following the naming pattern `field_name__post_type__token|condition`, you can rapidly create Bricks dynamic data tags and conditionals for both ACF and MetaBox fields without touching PHP code for each addition.
 
 ## Reference Implementation
 
-For a complete working implementation, see:
-- `src/Branding/BricksIntegration.php` - Complete class implementation
-- Lines 669-749: `get_auto_discovered_fields()` - Core discovery logic
-- Lines 752-797: `parse_field_pattern()` - Pattern parsing
-- Lines 878-915: `render_auto_token()` - Token rendering
-- Lines 918-973: `evaluate_auto_conditional()` - Conditional evaluation
+For a complete working implementation, see the plugin source code:
+
+**ACF Integration:**
+- `src/Integrations/ACF/` - ACF-specific implementation
+- Field discovery via `acf_get_field_groups()` and `acf_get_fields()`
+- Value retrieval via `get_field()`
+
+**MetaBox Integration:**
+- `src/Integrations/MetaBox/` - MetaBox-specific implementation
+- Field discovery via `rwmb_get_registry('meta_box')->all()`
+- Value retrieval via `rwmb_get_value()`
+
+**Core Methods:**
+- `get_auto_discovered_fields()` - Core discovery logic for both plugins
+- `parse_field_pattern()` - Pattern parsing
+- `render_auto_token()` - Token rendering
+- `evaluate_auto_conditional()` - Conditional evaluation

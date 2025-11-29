@@ -9,6 +9,10 @@ namespace AB\BricksAutoToken;
 
 defined('ABSPATH') || exit;
 
+use AB\BricksAutoToken\IntegrationRegistry;
+use AB\BricksAutoToken\Integrations\ACF\ACFIntegration;
+use AB\BricksAutoToken\Integrations\MetaBox\MetaBoxIntegration;
+
 /**
  * Main plugin class that initializes all functionality
  */
@@ -126,14 +130,26 @@ final class Plugin {
             return;
         }
 
-        // Load MetaBox integration if MetaBox is active
-        if (class_exists('RWMB_Field')) {
-            // MetaBox integration will be loaded here
-        }
+        // Register built-in integrations
+        $this->register_built_in_integrations();
 
-        // Load ACF integration if ACF is active
-        if (class_exists('ACF')) {
-            // ACF integration will be loaded here
-        }
+        // Allow external integrations to be registered
+        do_action('ab_bricks_auto_token_register_integrations');
+
+        // Initialize all registered integrations
+        IntegrationRegistry::init_integrations();
+    }
+
+    /**
+     * Register built-in integrations
+     *
+     * @return void
+     */
+    private function register_built_in_integrations(): void {
+        // Register ACF integration
+        IntegrationRegistry::register(ACFIntegration::class);
+
+        // Register MetaBox integration
+        IntegrationRegistry::register(MetaBoxIntegration::class);
     }
 }

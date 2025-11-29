@@ -298,13 +298,12 @@ final class ACFIntegration extends BaseIntegration {
                         $attachment_id = $value;
                     }
 
-                    // Verify attachment exists before returning
+                    // Verify attachment exists and return as ARRAY (Bricks expects array)
                     if ($attachment_id && wp_attachment_is_image($attachment_id)) {
-                        return $attachment_id;
+                        return [ (int) $attachment_id ];
                     }
 
-                    // If attachment doesn't exist or isn't valid, return empty
-                    return '';
+                    return [];
                 }
 
                 // For non-image contexts, extract URL if needed

@@ -271,7 +271,7 @@ final class MetaBoxIntegration extends BaseIntegration {
             if ($field['type'] === 'token' && $field['token_name'] === $tag_name) {
                 $field_type = $field['field_type'] ?? '';
 
-                // For image context, return attachment ID
+                // For image context, return array with attachment ID
                 if ($context === 'image') {
                     $value = function_exists('rwmb_get_value')
                         ? rwmb_get_value($field['full_field_name'], [], $post_id)
@@ -287,22 +287,20 @@ final class MetaBoxIntegration extends BaseIntegration {
                             $attachment_id = $value[0]['ID'];
                         }
                     } elseif (is_numeric($value)) {
-                        // Return numeric ID as-is
                         $attachment_id = $value;
                     }
 
-                    // Verify attachment exists before returning
+                    // Verify attachment exists and return as ARRAY (Bricks expects array)
                     if ($attachment_id && wp_attachment_is_image($attachment_id)) {
-                        return $attachment_id;
+                        return [ (int) $attachment_id ];
                     }
 
-                    // If attachment doesn't exist or isn't valid, return empty
-                    return '';
+                    return [];
                 }
 
                 // For non-image contexts, extract URL if needed
                 $value = self::get_field_value($field['full_field_name'], $post_id, $field_type);
-                return $value !== false ? (string) $value : '';
+                return $value !== false ? $value : '';
             }
         }
 

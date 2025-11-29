@@ -278,30 +278,33 @@ final class ACFIntegration extends BaseIntegration {
                         ? get_field($field['full_field_name'], $post_id)
                         : get_post_meta($post_id, $field['full_field_name'], true);
 
+                    $attachment_id = null;
+
                     // Extract attachment ID from array (ACF array format)
                     if (is_array($value)) {
                         if (isset($value['ID'])) {
-                            return $value['ID'];
-                        }
-                        if (isset($value['id'])) {
-                            return $value['id'];
-                        }
-                        if (isset($value[0]) && is_array($value[0])) {
+                            $attachment_id = $value['ID'];
+                        } elseif (isset($value['id'])) {
+                            $attachment_id = $value['id'];
+                        } elseif (isset($value[0]) && is_array($value[0])) {
                             if (isset($value[0]['ID'])) {
-                                return $value[0]['ID'];
-                            }
-                            if (isset($value[0]['id'])) {
-                                return $value[0]['id'];
+                                $attachment_id = $value[0]['ID'];
+                            } elseif (isset($value[0]['id'])) {
+                                $attachment_id = $value[0]['id'];
                             }
                         }
+                    } elseif (is_numeric($value)) {
+                        // Return numeric ID as-is
+                        $attachment_id = $value;
                     }
 
-                    // Return numeric ID as-is
-                    if (is_numeric($value)) {
-                        return $value;
+                    // Verify attachment exists before returning
+                    if ($attachment_id && wp_attachment_is_image($attachment_id)) {
+                        return $attachment_id;
                     }
 
-                    return $value;
+                    // If attachment doesn't exist or isn't valid, return empty
+                    return '';
                 }
 
                 // For non-image contexts, extract URL if needed

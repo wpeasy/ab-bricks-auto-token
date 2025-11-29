@@ -277,22 +277,27 @@ final class MetaBoxIntegration extends BaseIntegration {
                         ? rwmb_get_value($field['full_field_name'], [], $post_id)
                         : get_post_meta($post_id, $field['full_field_name'], true);
 
+                    $attachment_id = null;
+
                     // Extract attachment ID from array
                     if (is_array($value)) {
                         if (isset($value['ID'])) {
-                            return $value['ID'];
+                            $attachment_id = $value['ID'];
+                        } elseif (isset($value[0]) && is_array($value[0]) && isset($value[0]['ID'])) {
+                            $attachment_id = $value[0]['ID'];
                         }
-                        if (isset($value[0]) && is_array($value[0]) && isset($value[0]['ID'])) {
-                            return $value[0]['ID'];
-                        }
+                    } elseif (is_numeric($value)) {
+                        // Return numeric ID as-is
+                        $attachment_id = $value;
                     }
 
-                    // Return numeric ID as-is, or try to get ID from URL
-                    if (is_numeric($value)) {
-                        return $value;
+                    // Verify attachment exists before returning
+                    if ($attachment_id && wp_attachment_is_image($attachment_id)) {
+                        return $attachment_id;
                     }
 
-                    return $value;
+                    // If attachment doesn't exist or isn't valid, return empty
+                    return '';
                 }
 
                 // For non-image contexts, extract URL if needed

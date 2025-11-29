@@ -189,6 +189,29 @@ field_name__post_type__token__condition</code></pre>
             <li><strong><?php esc_html_e('Advanced Custom Fields (ACF)', 'ab-bricks-auto-token'); ?></strong> - <?php esc_html_e('Use field name', 'ab-bricks-auto-token'); ?></li>
             <li><strong><?php esc_html_e('MetaBox', 'ab-bricks-auto-token'); ?></strong> - <?php esc_html_e('Use field ID', 'ab-bricks-auto-token'); ?></li>
         </ul>
+
+        <h3><?php esc_html_e('Field Discovery & Caching', 'ab-bricks-auto-token'); ?></h3>
+
+        <h4><?php esc_html_e('When New Fields Appear', 'ab-bricks-auto-token'); ?></h4>
+        <p><?php esc_html_e('Fields are discovered automatically when you load the Bricks editor. After creating a new field:', 'ab-bricks-auto-token'); ?></p>
+        <ol>
+            <li><?php esc_html_e('Save your new ACF/MetaBox field', 'ab-bricks-auto-token'); ?></li>
+            <li><?php esc_html_e('Reload the Bricks editor page (hard refresh recommended: Ctrl+F5 or Cmd+Shift+R)', 'ab-bricks-auto-token'); ?></li>
+            <li><?php esc_html_e('Your new tokens and conditions will now be available', 'ab-bricks-auto-token'); ?></li>
+        </ol>
+
+        <h4><?php esc_html_e('Cache Behavior', 'ab-bricks-auto-token'); ?></h4>
+        <p><?php esc_html_e('Currently, field caching is disabled to ensure new fields are always discovered immediately. Field discovery runs fresh on each page load. This may be optimized in future versions with proper cache invalidation.', 'ab-bricks-auto-token'); ?></p>
+
+        <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:12px 15px;margin:15px 0;">
+            <strong><?php esc_html_e('Troubleshooting:', 'ab-bricks-auto-token'); ?></strong>
+            <?php esc_html_e('If your new fields don\'t appear in Bricks, try these steps:', 'ab-bricks-auto-token'); ?>
+            <ul style="margin:10px 0 0 20px;">
+                <li><?php esc_html_e('Verify the field name follows the correct pattern (field_name__post_type__token)', 'ab-bricks-auto-token'); ?></li>
+                <li><?php esc_html_e('Hard refresh the Bricks editor page (Ctrl+F5 or Cmd+Shift+R)', 'ab-bricks-auto-token'); ?></li>
+                <li><?php esc_html_e('Check that the field is assigned to the correct post type', 'ab-bricks-auto-token'); ?></li>
+            </ul>
+        </div>
         <?php
     }
 

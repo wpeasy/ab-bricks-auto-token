@@ -45,6 +45,14 @@ final class Plugin {
         $instance = self::get_instance();
         $instance->setup_hooks();
         $instance->load_integrations();
+
+        // Debug: Confirm plugin initialized
+        add_action('admin_notices', function() {
+            if (!current_user_can('manage_options')) {
+                return;
+            }
+            echo '<div class="notice notice-success"><p>AB Bricks Auto Token: Plugin initialized successfully!</p></div>';
+        });
     }
 
     /**
@@ -127,6 +135,12 @@ final class Plugin {
     private function load_integrations(): void {
         // Check if Bricks is active before loading integrations
         if (!defined('BRICKS_VERSION')) {
+            add_action('admin_notices', function() {
+                if (!current_user_can('manage_options')) {
+                    return;
+                }
+                echo '<div class="notice notice-warning"><p>AB Bricks Auto Token: Bricks Builder is not active. Integrations not loaded.</p></div>';
+            });
             return;
         }
 
@@ -138,6 +152,15 @@ final class Plugin {
 
         // Initialize all registered integrations
         IntegrationRegistry::init_integrations();
+
+        // Debug: Show active integrations
+        add_action('admin_notices', function() {
+            if (!current_user_can('manage_options')) {
+                return;
+            }
+            $active = IntegrationRegistry::get_active_integrations();
+            echo '<div class="notice notice-info"><p>AB Bricks Auto Token: ' . count($active) . ' active integration(s): ' . implode(', ', array_keys($active)) . '</p></div>';
+        });
     }
 
     /**

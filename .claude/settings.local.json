@@ -6,7 +6,9 @@
       "Bash(git push:*)",
       "Bash(composer dump-autoload:*)",
       "Bash(git commit:*)",
-      "Bash(php -l:*)"
+      "Bash(php -l:*)",
+      "Bash(php -r:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

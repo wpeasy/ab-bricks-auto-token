@@ -27,12 +27,21 @@ define('AB_BRICKS_AUTO_TOKEN_PLUGIN_URL', plugin_dir_url(__FILE__));
 // Require Composer autoloader
 if (file_exists(AB_BRICKS_AUTO_TOKEN_PLUGIN_PATH . 'vendor/autoload.php')) {
     require_once AB_BRICKS_AUTO_TOKEN_PLUGIN_PATH . 'vendor/autoload.php';
+} else {
+    add_action('admin_notices', function() {
+        echo '<div class="notice notice-error"><p>AB Bricks Auto Token: Autoloader not found! Run composer install.</p></div>';
+    });
+    return;
 }
 
 // Initialize the plugin
 add_action('plugins_loaded', function() {
     if (class_exists('AB\BricksAutoToken\Plugin')) {
         AB\BricksAutoToken\Plugin::init();
+    } else {
+        add_action('admin_notices', function() {
+            echo '<div class="notice notice-error"><p>AB Bricks Auto Token: Plugin class not found! Check autoloader.</p></div>';
+        });
     }
 });
 

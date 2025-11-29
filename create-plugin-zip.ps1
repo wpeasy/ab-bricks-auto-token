@@ -99,9 +99,11 @@ foreach ($file in $files) {
     Copy-Item -Path $file.FullName -Destination $targetPath -Force
 }
 
-# Create ZIP using .NET (ensures forward slashes for UNIX compatibility)
-Add-Type -Assembly System.IO.Compression.FileSystem
-[System.IO.Compression.ZipFile]::CreateFromDirectory($tempDir, $zipPath)
+# Create ZIP - PowerShell Compress-Archive automatically uses forward slashes
+# Compress from within temp directory to ensure proper structure
+Push-Location $tempDir
+Compress-Archive -Path "$pluginName" -DestinationPath $zipPath -Force
+Pop-Location
 
 # Clean up temp directory
 Remove-Item -Path $tempDir -Recurse -Force

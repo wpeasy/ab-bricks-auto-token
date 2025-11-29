@@ -34,8 +34,8 @@ if (file_exists(AB_BRICKS_AUTO_TOKEN_PLUGIN_PATH . 'vendor/autoload.php')) {
     return;
 }
 
-// Initialize the plugin
-add_action('plugins_loaded', function() {
+// Initialize the plugin (use 'init' to ensure themes are loaded first)
+add_action('init', function() {
     if (class_exists('AB\BricksAutoToken\Plugin')) {
         AB\BricksAutoToken\Plugin::init();
     } else {
@@ -43,7 +43,7 @@ add_action('plugins_loaded', function() {
             echo '<div class="notice notice-error"><p>AB Bricks Auto Token: Plugin class not found! Check autoloader.</p></div>';
         });
     }
-});
+}, 20); // Priority 20 to ensure it runs after other init hooks
 
 // Activation hook
 register_activation_hook(__FILE__, function() {

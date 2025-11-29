@@ -73,9 +73,10 @@ final class ACFIntegration extends BaseIntegration {
      * @return array
      */
     public static function get_discovered_fields(): array {
-        if (self::$fields_cache !== null) {
-            return self::$fields_cache;
-        }
+        // Temporarily disable cache - will add proper invalidation later
+        // if (self::$fields_cache !== null) {
+        //     return self::$fields_cache;
+        // }
 
         $discovered = [];
 

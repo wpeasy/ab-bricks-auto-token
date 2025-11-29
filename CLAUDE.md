@@ -90,3 +90,39 @@ This eliminates manual token creation and ensures dynamic data is available cons
 - Extensive error handling & validation.
 - Use a Modular structure for integrations e.g. integrations/MetaBox
 
+## Version 1.0.0 Release Notes
+
+### Architecture Decisions
+- **Hook Timing**: Plugin initializes on `after_setup_theme` with priority 100 (not `plugins_loaded`) because Bricks is a theme and `BRICKS_VERSION` isn't available during `plugins_loaded`
+- **Integration Registry**: Modular system allows external plugins to register custom integrations via `ab_bricks_auto_token_register_integrations` hook
+- **Cache Strategy**: Field discovery cache currently disabled to ensure immediate field discovery. Static cache only persists for single request duration, not between requests. Future versions will implement proper cache invalidation hooks.
+
+### Critical Bricks Integration Details
+1. **Conditions Groups Format**: Must use indexed array with `name` and `label` keys:
+   ```php
+   $groups[] = ['name' => $key, 'label' => $label];
+   ```
+   Not: `$groups[$key] = $label;`
+
+2. **Conditions Compare Options Format**: Must use nested structure:
+   ```php
+   'compare' => [
+       'type' => 'select',
+       'options' => ['==' => 'equals'],
+       'placeholder' => 'equals'
+   ]
+   ```
+   Not: `'compare' => ['==' => 'equals']`
+
+3. **Field Naming Pattern**: `field_name__post_type__token__condition`
+   - `field_name`: Meta field name (lowercase, underscores)
+   - `post_type`: Post type slug
+   - `__token`: Creates dynamic token `{post_type_field_name}`
+   - `__condition`: Creates Bricks condition in group `ab_auto_[post_type]`
+
+### Admin Interface
+- Instructions page accessible via top-level menu and plugin action links
+- Two-tab interface: Basic Usage and Developer Guide
+- Includes troubleshooting tips and cache behavior documentation
+- No settings page required - everything works via field naming conventions
+

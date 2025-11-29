@@ -31,6 +31,91 @@ The auto-discovery system:
 - `bricks/conditions/options` - Register conditional options
 - `bricks/conditions/result` - Evaluate conditionals
 
+## Critical Implementation Details
+
+### Plugin Initialization Timing
+
+**IMPORTANT:** Bricks is a **theme**, not a plugin. This means `BRICKS_VERSION` is not defined during the `plugins_loaded` hook.
+
+**Solution:** Initialize your plugin on the `after_setup_theme` hook instead of `plugins_loaded`:
+
+```php
+// WRONG - Bricks not loaded yet
+add_action('plugins_loaded', function() {
+    if (defined('BRICKS_VERSION')) {
+        // This will never be true!
+    }
+});
+
+// CORRECT - Theme loads before this hook
+add_action('after_setup_theme', function() {
+    if (defined('BRICKS_VERSION')) {
+        // This works!
+        YourPlugin::init();
+    }
+}, 100); // Priority 100 ensures theme fully loaded
+```
+
+### Conditions Data Format
+
+**CRITICAL:** The conditions hooks expect a **specific array format**. Getting this wrong means conditions won't appear in Bricks editor.
+
+#### Conditions Groups Format
+
+**WRONG:**
+```php
+public static function register_conditionals_group(array $groups): array {
+    $groups['my_group_key'] = 'My Group Label';
+    return $groups;
+}
+```
+
+**CORRECT:**
+```php
+public static function register_conditionals_group(array $groups): array {
+    $groups[] = [
+        'name' => 'my_group_key',
+        'label' => 'My Group Label',
+    ];
+    return $groups;
+}
+```
+
+**Key Difference:**
+- Groups must be an **indexed array** with `name` and `label` keys
+- Do NOT use associative array with key => value format
+
+#### Conditions Options Format
+
+The options format is correct as long as you include all required keys:
+
+```php
+public static function register_conditionals(array $options): array {
+    $options[] = [
+        'key' => 'my_condition_key',      // Required: unique identifier
+        'label' => 'My Condition',        // Required: display label
+        'group' => 'my_group_key',        // Required: must match group 'name'
+        'compare' => [                     // Required: comparison operators
+            '==' => 'equals',
+            '!=' => 'not equals',
+            'empty' => 'is empty',
+            'not_empty' => 'is not empty',
+        ],
+    ];
+    return $options;
+}
+```
+
+### Filter Hook Priority
+
+Tokens and conditions work fine with default priority. Early priority (1) is not required but doesn't hurt:
+
+```php
+// These both work
+add_filter('bricks/conditions/groups', [self::class, 'register_conditionals_group']);
+add_filter('bricks/conditions/groups', [self::class, 'register_conditionals_group'], 1);
+```
+
 ## Naming Convention
 
 The system uses a double-underscore (`__`) pattern to identify fields:

@@ -99,18 +99,26 @@ abstract class BaseIntegration implements IntegrationInterface {
         // Boolean fields get simplified options
         if (in_array($field_type, ['true_false', 'checkbox'], true)) {
             return [
-                '==' => esc_html__('is true', 'ab-bricks-auto-token'),
-                '!=' => esc_html__('is false', 'ab-bricks-auto-token'),
+                'type' => 'select',
+                'options' => [
+                    '==' => esc_html__('is true', 'ab-bricks-auto-token'),
+                    '!=' => esc_html__('is false', 'ab-bricks-auto-token'),
+                ],
+                'placeholder' => esc_html__('is true', 'ab-bricks-auto-token'),
             ];
         }
 
         // All other fields get full options
         return [
-            '==' => esc_html__('equals', 'ab-bricks-auto-token'),
-            '!=' => esc_html__('not equals', 'ab-bricks-auto-token'),
-            'contains' => esc_html__('contains', 'ab-bricks-auto-token'),
-            'empty' => esc_html__('is empty', 'ab-bricks-auto-token'),
-            'not_empty' => esc_html__('is not empty', 'ab-bricks-auto-token'),
+            'type' => 'select',
+            'options' => [
+                '==' => esc_html__('equals', 'ab-bricks-auto-token'),
+                '!=' => esc_html__('not equals', 'ab-bricks-auto-token'),
+                'contains' => esc_html__('contains', 'ab-bricks-auto-token'),
+                'empty' => esc_html__('is empty', 'ab-bricks-auto-token'),
+                'not_empty' => esc_html__('is not empty', 'ab-bricks-auto-token'),
+            ],
+            'placeholder' => esc_html__('equals', 'ab-bricks-auto-token'),
         ];
     }
 

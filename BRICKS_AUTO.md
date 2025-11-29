@@ -87,8 +87,25 @@ public static function register_conditionals_group(array $groups): array {
 
 #### Conditions Options Format
 
-The options format is correct as long as you include all required keys:
+**CRITICAL:** The `compare` key must have a specific nested structure with `type`, `options`, and `placeholder`:
 
+**WRONG:**
+```php
+public static function register_conditionals(array $options): array {
+    $options[] = [
+        'key' => 'my_condition_key',
+        'label' => 'My Condition',
+        'group' => 'my_group_key',
+        'compare' => [
+            '==' => 'equals',         // This won't work!
+            '!=' => 'not equals',
+        ],
+    ];
+    return $options;
+}
+```
+
+**CORRECT:**
 ```php
 public static function register_conditionals(array $options): array {
     $options[] = [
@@ -96,14 +113,31 @@ public static function register_conditionals(array $options): array {
         'label' => 'My Condition',        // Required: display label
         'group' => 'my_group_key',        // Required: must match group 'name'
         'compare' => [                     // Required: comparison operators
-            '==' => 'equals',
-            '!=' => 'not equals',
-            'empty' => 'is empty',
-            'not_empty' => 'is not empty',
+            'type' => 'select',            // Required: must be 'select'
+            'options' => [                 // Required: the actual operators
+                '==' => 'equals',
+                '!=' => 'not equals',
+                'contains' => 'contains',
+                'empty' => 'is empty',
+                'not_empty' => 'is not empty',
+            ],
+            'placeholder' => 'equals',     // Required: default value
         ],
     ];
     return $options;
 }
+```
+
+**For Boolean Fields:**
+```php
+'compare' => [
+    'type' => 'select',
+    'options' => [
+        '==' => 'is true',
+        '!=' => 'is false',
+    ],
+    'placeholder' => 'is true',
+]
 ```
 
 ### Filter Hook Priority

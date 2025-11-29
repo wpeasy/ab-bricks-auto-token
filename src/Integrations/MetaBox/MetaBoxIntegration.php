@@ -291,7 +291,10 @@ final class MetaBoxIntegration extends BaseIntegration {
 
         foreach ($fields as $field) {
             if ($field['type'] === 'condition' && !in_array($field['group_key'], $group_keys, true)) {
-                $groups[$field['group_key']] = $field['group'];
+                $groups[] = [
+                    'name' => $field['group_key'],
+                    'label' => $field['group'],
+                ];
                 $group_keys[] = $field['group_key'];
             }
         }

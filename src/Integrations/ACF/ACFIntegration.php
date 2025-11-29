@@ -61,9 +61,9 @@ final class ACFIntegration extends BaseIntegration {
         add_filter('bricks/dynamic_data/render_content', [self::class, 'render_content'], 20, 3);
         add_filter('bricks/frontend/render_data', [self::class, 'render_content'], 20, 2);
 
-        // Register conditionals
-        add_filter('bricks/conditions/groups', [self::class, 'register_conditionals_group']);
-        add_filter('bricks/conditions/options', [self::class, 'register_conditionals']);
+        // Register conditionals - use priority 1 to register very early
+        add_filter('bricks/conditions/groups', [self::class, 'register_conditionals_group'], 1);
+        add_filter('bricks/conditions/options', [self::class, 'register_conditionals'], 1);
         add_filter('bricks/conditions/result', [self::class, 'evaluate_conditional'], 10, 3);
     }
 
@@ -289,7 +289,10 @@ final class ACFIntegration extends BaseIntegration {
 
         foreach ($fields as $field) {
             if ($field['type'] === 'condition' && !in_array($field['group_key'], $group_keys, true)) {
-                $groups[$field['group_key']] = $field['group'];
+                $groups[] = [
+                    'name' => $field['group_key'],
+                    'label' => $field['group'],
+                ];
                 $group_keys[] = $field['group_key'];
             }
         }

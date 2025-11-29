@@ -12,6 +12,7 @@ defined('ABSPATH') || exit;
 use AB\BricksAutoToken\IntegrationRegistry;
 use AB\BricksAutoToken\Integrations\ACF\ACFIntegration;
 use AB\BricksAutoToken\Integrations\MetaBox\MetaBoxIntegration;
+use AB\BricksAutoToken\Admin\InstructionsPage;
 
 /**
  * Main plugin class that initializes all functionality
@@ -65,6 +66,11 @@ final class Plugin {
 
         // Check if Bricks is active
         add_action('admin_notices', [$this, 'check_dependencies']);
+
+        // Initialize admin instructions page
+        if (is_admin()) {
+            InstructionsPage::init();
+        }
     }
 
     /**

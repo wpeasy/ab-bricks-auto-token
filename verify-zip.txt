@@ -1,0 +1,12 @@
+Essential files that MUST be in ZIP:
+ab-bricks-auto-token.php
+composer.json
+composer.lock
+src/Plugin.php
+src/IntegrationRegistry.php
+src/Admin/InstructionsPage.php
+src/Integrations/ACF/ACFIntegration.php
+src/Integrations/MetaBox/MetaBoxIntegration.php
+src/Abstracts/BaseIntegration.php
+src/Contracts/IntegrationInterface.php
+vendor/autoload.php

@@ -271,13 +271,27 @@ final class MetaBoxIntegration extends BaseIntegration {
             if ($field['type'] === 'token' && $field['token_name'] === $tag_name) {
                 $field_type = $field['field_type'] ?? '';
 
-                // For image context, get the raw value (don't extract URL)
+                // For image context, return attachment ID
                 if ($context === 'image') {
                     $value = function_exists('rwmb_get_value')
                         ? rwmb_get_value($field['full_field_name'], [], $post_id)
                         : get_post_meta($post_id, $field['full_field_name'], true);
 
-                    // Return the value as-is for Bricks to handle
+                    // Extract attachment ID from array
+                    if (is_array($value)) {
+                        if (isset($value['ID'])) {
+                            return $value['ID'];
+                        }
+                        if (isset($value[0]) && is_array($value[0]) && isset($value[0]['ID'])) {
+                            return $value[0]['ID'];
+                        }
+                    }
+
+                    // Return numeric ID as-is, or try to get ID from URL
+                    if (is_numeric($value)) {
+                        return $value;
+                    }
+
                     return $value;
                 }
 

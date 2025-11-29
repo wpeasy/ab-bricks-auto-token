@@ -272,13 +272,35 @@ final class ACFIntegration extends BaseIntegration {
             if ($field['type'] === 'token' && $field['token_name'] === $tag_name) {
                 $field_type = $field['field_type'] ?? '';
 
-                // For image context, get the raw value (don't extract URL)
+                // For image context, return attachment ID
                 if ($context === 'image') {
                     $value = function_exists('get_field')
                         ? get_field($field['full_field_name'], $post_id)
                         : get_post_meta($post_id, $field['full_field_name'], true);
 
-                    // Return the value as-is for Bricks to handle
+                    // Extract attachment ID from array (ACF array format)
+                    if (is_array($value)) {
+                        if (isset($value['ID'])) {
+                            return $value['ID'];
+                        }
+                        if (isset($value['id'])) {
+                            return $value['id'];
+                        }
+                        if (isset($value[0]) && is_array($value[0])) {
+                            if (isset($value[0]['ID'])) {
+                                return $value[0]['ID'];
+                            }
+                            if (isset($value[0]['id'])) {
+                                return $value[0]['id'];
+                            }
+                        }
+                    }
+
+                    // Return numeric ID as-is
+                    if (is_numeric($value)) {
+                        return $value;
+                    }
+
                     return $value;
                 }
 

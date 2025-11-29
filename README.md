@@ -32,27 +32,72 @@ AB Bricks Auto Token eliminates manual token creation for Bricks Builder by auto
 3. Activate the plugin through the 'Plugins' menu in WordPress
 4. The plugin will automatically start registering tokens based on your existing ACF/MetaBox fields
 
-## Usage
+## Quick Start
+
+### Naming Pattern
+```
+field_name__post_type__token|condition
+```
+
+### Example
+**ACF Field Name:** `author_bio__post__token`
+
+**Creates Token:** `{post_author_bio}`
+
+The token is now available in Bricks Builder's Dynamic Data dropdown under "Post (auto)".
+
+### Full Usage Guide
+
+See [USAGE.md](USAGE.md) for:
+- Detailed examples
+- ACF and MetaBox field creation
+- Using tokens and conditions in Bricks
+- Advanced integration development
+- Troubleshooting
+
+## How It Works
 
 Once activated, the plugin automatically:
 
 1. Scans your ACF and MetaBox field groups
-2. Identifies fields following naming conventions
+2. Identifies fields following the naming pattern
 3. Registers them as Bricks Dynamic Tokens
-4. Creates conditions for boolean/status fields
+4. Creates Bricks Conditions for conditional display
 
-Tokens will appear in Bricks Builder's Dynamic Data dropdown menus.
+Tokens appear in Bricks Builder's Dynamic Data dropdown menus organized by post type.
+
+## Documentation
+
+- **[USAGE.md](USAGE.md)** - User guide with examples and troubleshooting
+- **[BRICKS_AUTO.md](BRICKS_AUTO.md)** - Technical implementation details and API reference
+- **[CLAUDE.md](CLAUDE.md)** - Code style guidelines and development standards
 
 ## Developer Notes
-
-See [CLAUDE.md](CLAUDE.md) for detailed code style guidelines and development standards.
 
 ### Code Structure
 
 - `src/` - Core plugin classes (PSR-4 autoloaded)
-- `src/Integrations/` - Integration modules for ACF and MetaBox
+  - `src/Contracts/` - Interfaces for integrations
+  - `src/Abstracts/` - Base classes for integrations
+  - `src/Integrations/ACF/` - ACF integration module
+  - `src/Integrations/MetaBox/` - MetaBox integration module
+  - `src/IntegrationRegistry.php` - Module registration system
 - `assets/` - CSS and JavaScript files
 - `languages/` - Translation files
+
+### Extending with Custom Integrations
+
+External plugins can register custom integrations:
+
+```php
+add_action('ab_bricks_auto_token_register_integrations', function() {
+    AB\BricksAutoToken\IntegrationRegistry::register(
+        YourCustomIntegration::class
+    );
+});
+```
+
+See [USAGE.md](USAGE.md) for detailed integration development guide.
 
 ## License
 

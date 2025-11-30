@@ -2,6 +2,19 @@
 
 All notable changes to AB Bricks Auto Token will be documented in this file.
 
+## [1.0.1] - 2025-11-30
+
+### Fixed
+- Fixed image field rendering for Bricks Image Element
+- Image context now returns array format `[attachment_id]` instead of bare integer
+- Resolved "Dynamic data is empty" error when using image fields in Bricks Image Elements
+- Resolved "Image ID (X) no longer exist" errors caused by Bricks treating integer as string
+
+### Technical
+- Updated `render_tag()` method in both ACF and MetaBox integrations
+- Return format matches Bricks' expectation of array for dynamic data in image context
+- Applied to all image field types: MetaBox (single_image, image_advanced, etc.) and ACF (image, gallery, file)
+
 ## [1.0.0] - 2025-11-29
 
 ### Added

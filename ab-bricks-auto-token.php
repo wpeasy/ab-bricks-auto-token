@@ -3,7 +3,7 @@
  * Plugin Name: AB Bricks Auto Token
  * Plugin URI: https://github.com/wpeasy/ab-bricks-auto-token
  * Description: Automatically generates Bricks Builder Dynamic Tokens and Conditions based on ACF/MetaBox field naming conventions.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: WPEasy
  * Author URI: https://github.com/wpeasy
  * Requires at least: 6.0
@@ -19,7 +19,7 @@
 defined('ABSPATH') || exit;
 
 // Define plugin constants
-define('AB_BRICKS_AUTO_TOKEN_VERSION', '1.0.0');
+define('AB_BRICKS_AUTO_TOKEN_VERSION', '1.0.1');
 define('AB_BRICKS_AUTO_TOKEN_PLUGIN_FILE', __FILE__);
 define('AB_BRICKS_AUTO_TOKEN_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('AB_BRICKS_AUTO_TOKEN_PLUGIN_URL', plugin_dir_url(__FILE__));

@@ -114,15 +114,30 @@ This eliminates manual token creation and ensures dynamic data is available cons
    ```
    Not: `'compare' => ['==' => 'equals']`
 
-3. **Field Naming Pattern**: `field_name__post_type__token__condition`
+3. **Field Naming Pattern**: `field_name__group_name__token__condition`
    - `field_name`: Meta field name (lowercase, underscores)
-   - `post_type`: Post type slug
-   - `__token`: Creates dynamic token `{post_type_field_name}`
-   - `__condition`: Creates Bricks condition in group `ab_auto_[post_type]`
+   - `group_name`: Grouping identifier (typically post type slug, but can be any identifier)
+   - `__token`: Creates dynamic token `{group_name_field_name}`
+   - `__condition`: Creates Bricks condition in group `ab_auto_[group_name]`
+   - **Important**: The `group_name` segment is used ONLY for naming and UI grouping, NOT for determining which post to read from. Values are always read from the current post context.
 
 ### Admin Interface
 - Instructions page accessible via top-level menu and plugin action links
 - Two-tab interface: Basic Usage and Developer Guide
 - Includes troubleshooting tips and cache behavior documentation
 - No settings page required - everything works via field naming conventions
+
+## Version 1.0.1 Release Notes
+
+### Image Field Support
+- **Fixed Bricks Image Element Compatibility**: Image fields now work correctly in Bricks Image Elements
+- **Array Return Format**: Dynamic data tags in image context now return `[attachment_id]` array format instead of bare integer
+- **Bricks Integration Discovery**: Analyzed Bricks source code (`includes/elements/image.php`) to understand expected data format
+- **Root Cause**: Bricks expects `render_dynamic_data_tag()` to return array, accesses first element with `$images[0]`
+- **Applied To**: Both MetaBox and ACF integrations for all image field types
+
+### Field Naming Clarification
+- **Group Name vs Post Type**: Clarified that the second segment in field naming (`field_name__group_name__token__condition`) is used for UI grouping only
+- **Not Used for Reading**: The group name does NOT determine which post to read from - values are always read from current post context
+- **Documentation Updated**: Field naming pattern now refers to `group_name` instead of `post_type` for accuracy
 

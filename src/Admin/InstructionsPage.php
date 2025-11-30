@@ -104,9 +104,16 @@ final class InstructionsPage {
         <h3><?php esc_html_e('Field Naming Pattern', 'ab-bricks-auto-token'); ?></h3>
         <p><?php esc_html_e('To automatically generate Bricks tokens and conditions, name your ACF or MetaBox fields using this pattern:', 'ab-bricks-auto-token'); ?></p>
 
-        <pre style="background:#f5f5f5;padding:15px;border-left:4px solid #2271b1;font-size:14px;"><code>field_name__post_type__token
-field_name__post_type__condition
-field_name__post_type__token__condition</code></pre>
+        <pre style="background:#f5f5f5;padding:15px;border-left:4px solid #2271b1;font-size:14px;"><code>field_name__group_name__token
+field_name__group_name__condition
+field_name__group_name__token__condition</code></pre>
+
+        <div style="background:#e7f3ff;border-left:4px solid #2271b1;padding:12px 15px;margin:15px 0;">
+            <strong><?php esc_html_e('Naming Flexibility:', 'ab-bricks-auto-token'); ?></strong>
+            <?php esc_html_e('You can use dashes (-) or underscores (_) in field names. Tokens will always use underscores for consistency.', 'ab-bricks-auto-token'); ?>
+            <br>
+            <code>my-field__product__token</code> → <code>{product_my_field}</code>
+        </div>
 
         <h3><?php esc_html_e('Pattern Components', 'ab-bricks-auto-token'); ?></h3>
         <table class="wp-list-table widefat striped">
@@ -120,12 +127,12 @@ field_name__post_type__token__condition</code></pre>
             <tbody>
                 <tr>
                     <td><code>field_name</code></td>
-                    <td><?php esc_html_e('The meta field name (lowercase, underscores)', 'ab-bricks-auto-token'); ?></td>
-                    <td><code>sku</code>, <code>author_bio</code>, <code>is_featured</code></td>
+                    <td><?php esc_html_e('The meta field name (can use dashes or underscores)', 'ab-bricks-auto-token'); ?></td>
+                    <td><code>sku</code>, <code>author-bio</code>, <code>is_featured</code></td>
                 </tr>
                 <tr>
-                    <td><code>post_type</code></td>
-                    <td><?php esc_html_e('The post type slug', 'ab-bricks-auto-token'); ?></td>
+                    <td><code>group_name</code></td>
+                    <td><?php esc_html_e('Grouping identifier (typically post type slug, used for UI organization only)', 'ab-bricks-auto-token'); ?></td>
                     <td><code>product</code>, <code>post</code>, <code>event</code></td>
                 </tr>
                 <tr>
@@ -190,6 +197,19 @@ field_name__post_type__token__condition</code></pre>
             <li><strong><?php esc_html_e('MetaBox', 'ab-bricks-auto-token'); ?></strong> - <?php esc_html_e('Use field ID', 'ab-bricks-auto-token'); ?></li>
         </ul>
 
+        <h3><?php esc_html_e('Supported Field Types', 'ab-bricks-auto-token'); ?></h3>
+        <ul>
+            <li><?php esc_html_e('Text fields, numbers, textareas', 'ab-bricks-auto-token'); ?></li>
+            <li><?php esc_html_e('Boolean/checkbox fields', 'ab-bricks-auto-token'); ?></li>
+            <li><?php esc_html_e('Select, radio, relationship fields', 'ab-bricks-auto-token'); ?></li>
+            <li><strong><?php esc_html_e('Image fields', 'ab-bricks-auto-token'); ?></strong> - <?php esc_html_e('Works with Bricks Image Element', 'ab-bricks-auto-token'); ?></li>
+        </ul>
+
+        <div style="background:#e7f3ff;border-left:4px solid #2271b1;padding:12px 15px;margin:15px 0;">
+            <strong><?php esc_html_e('Important: Group Name vs Post Context', 'ab-bricks-auto-token'); ?></strong>
+            <p style="margin:8px 0 0 0;"><?php esc_html_e('The group_name segment is used ONLY for organizing tokens in the Bricks UI. Field values are always read from the current post context, not determined by the group name. This allows you to use the same field name across different post types while keeping them organized in separate groups.', 'ab-bricks-auto-token'); ?></p>
+        </div>
+
         <h3><?php esc_html_e('Field Discovery & Caching', 'ab-bricks-auto-token'); ?></h3>
 
         <h4><?php esc_html_e('When New Fields Appear', 'ab-bricks-auto-token'); ?></h4>
@@ -207,9 +227,9 @@ field_name__post_type__token__condition</code></pre>
             <strong><?php esc_html_e('Troubleshooting:', 'ab-bricks-auto-token'); ?></strong>
             <?php esc_html_e('If your new fields don\'t appear in Bricks, try these steps:', 'ab-bricks-auto-token'); ?>
             <ul style="margin:10px 0 0 20px;">
-                <li><?php esc_html_e('Verify the field name follows the correct pattern (field_name__post_type__token)', 'ab-bricks-auto-token'); ?></li>
+                <li><?php esc_html_e('Verify the field name follows the correct pattern (field_name__group_name__token)', 'ab-bricks-auto-token'); ?></li>
                 <li><?php esc_html_e('Hard refresh the Bricks editor page (Ctrl+F5 or Cmd+Shift+R)', 'ab-bricks-auto-token'); ?></li>
-                <li><?php esc_html_e('Check that the field is assigned to the correct post type', 'ab-bricks-auto-token'); ?></li>
+                <li><?php esc_html_e('Check that the field is assigned to the correct post type in ACF/MetaBox settings', 'ab-bricks-auto-token'); ?></li>
             </ul>
         </div>
         <?php

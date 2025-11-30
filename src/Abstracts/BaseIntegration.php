@@ -129,7 +129,18 @@ abstract class BaseIntegration implements IntegrationInterface {
      * @return string
      */
     protected static function generate_label(string $field_name): string {
-        return ucwords(str_replace('_', ' ', $field_name));
+        return ucwords(str_replace(['_', '-'], ' ', $field_name));
+    }
+
+    /**
+     * Normalize segment for use in token/conditional names
+     * Converts dashes to underscores
+     *
+     * @param string $segment Segment name.
+     * @return string
+     */
+    protected static function normalize_segment(string $segment): string {
+        return str_replace('-', '_', $segment);
     }
 
     /**

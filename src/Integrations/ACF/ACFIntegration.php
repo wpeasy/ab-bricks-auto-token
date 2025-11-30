@@ -105,17 +105,21 @@ final class ACFIntegration extends BaseIntegration {
                 }
 
                 foreach ($parsed as $parsed_field) {
+                    // Normalize segments for token/conditional names (convert dashes to underscores)
+                    $normalized_meta = self::normalize_segment($parsed_field['meta_name']);
+                    $normalized_group = self::normalize_segment($parsed_field['post_type']);
+
                     $discovered[] = [
                         'meta_name' => $parsed_field['meta_name'],
                         'full_field_name' => $field['name'],
                         'post_type' => $parsed_field['post_type'],
                         'type' => $parsed_field['type'],
                         'field_type' => $field['type'] ?? 'text',
-                        'token_name' => $parsed_field['post_type'] . '_' . $parsed_field['meta_name'],
-                        'conditional_key' => self::CONDITIONAL_PREFIX . '_' . $parsed_field['post_type'] . '_' . $parsed_field['meta_name'],
+                        'token_name' => $normalized_group . '_' . $normalized_meta,
+                        'conditional_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_group . '_' . $normalized_meta,
                         'label' => self::generate_label($parsed_field['meta_name']),
                         'group' => self::format_post_type_label($parsed_field['post_type']) . ' (auto)',
-                        'group_key' => self::CONDITIONAL_PREFIX . '_' . $parsed_field['post_type'],
+                        'group_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_group,
                         'compare_options' => self::build_compare_options($field['type'] ?? 'text'),
                         'integration' => 'acf',
                         'field_object' => $field,
@@ -127,17 +131,19 @@ final class ACFIntegration extends BaseIntegration {
                             continue;
                         }
 
+                        $normalized_location_group = self::normalize_segment($location_post_type);
+
                         $discovered[] = [
                             'meta_name' => $parsed_field['meta_name'],
                             'full_field_name' => $field['name'],
                             'post_type' => $location_post_type,
                             'type' => $parsed_field['type'],
                             'field_type' => $field['type'] ?? 'text',
-                            'token_name' => $location_post_type . '_' . $parsed_field['meta_name'],
-                            'conditional_key' => self::CONDITIONAL_PREFIX . '_' . $location_post_type . '_' . $parsed_field['meta_name'],
+                            'token_name' => $normalized_location_group . '_' . $normalized_meta,
+                            'conditional_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_location_group . '_' . $normalized_meta,
                             'label' => self::generate_label($parsed_field['meta_name']),
                             'group' => self::format_post_type_label($location_post_type) . ' (auto)',
-                            'group_key' => self::CONDITIONAL_PREFIX . '_' . $location_post_type,
+                            'group_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_location_group,
                             'compare_options' => self::build_compare_options($field['type'] ?? 'text'),
                             'integration' => 'acf',
                             'field_object' => $field,

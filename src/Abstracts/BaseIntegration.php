@@ -144,11 +144,87 @@ abstract class BaseIntegration implements IntegrationInterface {
     }
 
     /**
+     * Get transient cache key for this integration
+     *
+     * @return string
+     */
+    protected static function get_cache_key(): string {
+        return 'ab_bricks_auto_token_fields_' . static::get_name();
+    }
+
+    /**
+     * Get fields from transient cache
+     *
+     * @return array|false
+     */
+    protected static function get_cached_fields() {
+        // Check in-request cache first
+        if (static::$fields_cache !== null) {
+            return static::$fields_cache;
+        }
+
+        // Check transient cache if enabled
+        $ttl = \AB\BricksAutoToken\Admin\Settings::get_cache_ttl();
+        if ($ttl > 0) {
+            $cached = get_transient(static::get_cache_key());
+            if ($cached !== false) {
+                static::$fields_cache = $cached;
+                return $cached;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Save fields to cache
+     *
+     * @param array $fields Discovered fields.
+     * @return void
+     */
+    protected static function save_to_cache(array $fields): void {
+        // Always save to in-request cache
+        static::$fields_cache = $fields;
+
+        // Save to transient cache if enabled
+        $ttl = \AB\BricksAutoToken\Admin\Settings::get_cache_ttl();
+        if ($ttl > 0) {
+            set_transient(static::get_cache_key(), $fields, $ttl);
+        }
+    }
+
+    /**
+     * Check if a group already exists in the groups array
+     *
+     * @param array  $groups    Existing groups array.
+     * @param string $group_key Group key to check.
+     * @return bool
+     */
+    protected static function group_exists(array $groups, string $group_key): bool {
+        foreach ($groups as $group) {
+            if (isset($group['name']) && $group['name'] === $group_key) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Clear the fields cache
      *
      * @return void
      */
     public static function clear_cache(): void {
+        static::$fields_cache = null;
+        delete_transient(static::get_cache_key());
+    }
+
+    /**
+     * Force clear the static cache (for debugging)
+     *
+     * @return void
+     */
+    public static function force_clear_static_cache(): void {
         static::$fields_cache = null;
     }
 }

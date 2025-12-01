@@ -2,6 +2,26 @@
 
 All notable changes to AB Bricks Auto Token will be documented in this file.
 
+## [1.0.2] - 2025-11-30
+
+### Fixed
+- **Critical**: Fixed cache contamination bug where ACF and MetaBox shared static cache property
+- Fixed duplicate token detection causing false positives and missing tokens
+- Resolved issue where only duplicate "Extra Image" tokens appeared in Bricks dropdown
+- Each integration now maintains its own separate cache preventing cross-contamination
+
+### Technical
+- Added individual `$fields_cache` property override in both `ACFIntegration` and `MetaBoxIntegration` classes
+- Implemented final deduplication pass ensuring unique token names and conditional keys
+- Enhanced ACF meta box filtering in MetaBox integration to prevent field discovery overlap
+- Added unique key tracking during field discovery loop to prevent duplicates
+- Root cause: PHP static properties in parent class are shared across child classes unless explicitly overridden
+
+### Impact
+- All tokens from both ACF and MetaBox now display correctly in Bricks
+- Cache system fully functional without workarounds
+- Field discovery performance maintained with proper caching
+
 ## [1.0.1] - 2025-11-30
 
 ### Fixed

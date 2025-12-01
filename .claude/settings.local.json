@@ -13,7 +13,10 @@
       "Bash(powershell -Command \"Add-Type -Assembly System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead(''plugin/ab-bricks-auto-token-1.0.0.zip'').Entries | Select-Object -First 15 FullName\")",
       "Bash(powershell -Command \"Add-Type -Assembly System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead(''plugin/ab-bricks-auto-token-1.0.0.zip'').Entries | Select-Object FullName\")",
       "Bash(powershell -Command \"Add-Type -Assembly System.IO.Compression.FileSystem; $zip = [System.IO.Compression.ZipFile]::OpenRead(''plugin/ab-bricks-auto-token-1.0.0.zip''); Write-Host ''Total files:'' $zip.Entries.Count; Write-Host ''''; Write-Host ''PHP files:''; $zip.Entries | Where-Object { $_Name -like ''*.php'' } | Select-Object -ExpandProperty FullName\")",
-      "Bash(powershell -Command \"Add-Type -Assembly System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead(''plugin/ab-bricks-auto-token-1.0.0.zip'').Entries | Where-Object { $_.Name -like ''*.php'' } | Select-Object FullName\")"
+      "Bash(powershell -Command \"Add-Type -Assembly System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead(''plugin/ab-bricks-auto-token-1.0.0.zip'').Entries | Where-Object { $_.Name -like ''*.php'' } | Select-Object FullName\")",
+      "SlashCommand(/commit-version)",
+      "Bash(timeout 30 tail:*)",
+      "SlashCommand(/zip-plugin)"
     ],
     "deny": [],
     "ask": []

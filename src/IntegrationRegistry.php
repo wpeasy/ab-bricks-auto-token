@@ -39,6 +39,13 @@ final class IntegrationRegistry {
     private static ?array $discovered_fields_cache = null;
 
     /**
+     * Duplicate token names detected
+     *
+     * @var array
+     */
+    private static array $duplicate_tokens = [];
+
+    /**
      * Register an integration
      *
      * @param string $class_name Fully qualified class name implementing IntegrationInterface.
@@ -82,10 +89,44 @@ final class IntegrationRegistry {
         }
 
         $all_fields = [];
+        $token_tracking = []; // Track token names to detect duplicates
+        self::$duplicate_tokens = []; // Reset duplicates
 
         foreach (self::$active_integrations as $integration) {
             $fields = $integration::get_discovered_fields();
-            $all_fields = array_merge($all_fields, $fields);
+
+            foreach ($fields as $field) {
+
+                // Only track token type fields for duplicates
+                if ($field['type'] === 'token') {
+                    $token_name = $field['token_name'];
+
+                    if (isset($token_tracking[$token_name])) {
+                        // Duplicate detected
+                        if (!isset(self::$duplicate_tokens[$token_name])) {
+                            // First duplicate - add the original field
+                            self::$duplicate_tokens[$token_name] = [
+                                $token_tracking[$token_name],
+                            ];
+                        }
+                        // Add this duplicate field
+                        self::$duplicate_tokens[$token_name][] = [
+                            'integration' => $field['integration'],
+                            'full_field_name' => $field['full_field_name'],
+                            'group' => $field['group'],
+                        ];
+                    } else {
+                        // First occurrence of this token
+                        $token_tracking[$token_name] = [
+                            'integration' => $field['integration'],
+                            'full_field_name' => $field['full_field_name'],
+                            'group' => $field['group'],
+                        ];
+                    }
+                }
+
+                $all_fields[] = $field;
+            }
         }
 
         self::$discovered_fields_cache = $all_fields;
@@ -126,5 +167,46 @@ final class IntegrationRegistry {
      */
     public static function clear_cache(): void {
         self::$discovered_fields_cache = null;
+        self::$duplicate_tokens = [];
+    }
+
+    /**
+     * Get duplicate token names
+     *
+     * @return array
+     */
+    public static function get_duplicate_tokens(): array {
+        // Ensure fields have been discovered
+        if (self::$discovered_fields_cache === null) {
+            self::get_all_discovered_fields();
+        }
+
+        return self::$duplicate_tokens;
+    }
+
+    /**
+     * Check if there are any duplicate tokens
+     *
+     * @return bool
+     */
+    public static function has_duplicate_tokens(): bool {
+        return !empty(self::get_duplicate_tokens());
+    }
+
+    /**
+     * Clear all caches (registry + all integrations)
+     *
+     * @return void
+     */
+    public static function clear_all_caches(): void {
+        // Clear registry cache
+        self::clear_cache();
+
+        // Clear each integration's cache
+        foreach (self::$active_integrations as $integration) {
+            if (method_exists($integration, 'clear_cache')) {
+                $integration::clear_cache();
+            }
+        }
     }
 }

@@ -18,6 +18,13 @@ use AB\BricksAutoToken\Abstracts\BaseIntegration;
  */
 final class MetaBoxIntegration extends BaseIntegration {
     /**
+     * Cache for discovered fields (override parent to prevent sharing)
+     *
+     * @var array|null
+     */
+    protected static ?array $fields_cache = null;
+
+    /**
      * Conditional group prefix
      */
     private const CONDITIONAL_PREFIX = 'ab_auto';
@@ -73,21 +80,41 @@ final class MetaBoxIntegration extends BaseIntegration {
      * @return array
      */
     public static function get_discovered_fields(): array {
-        // Temporarily disable cache - will add proper invalidation later
-        // if (self::$fields_cache !== null) {
-        //     return self::$fields_cache;
-        // }
+        // Check cache first
+        $cached = self::get_cached_fields();
+        if ($cached !== false) {
+            return $cached;
+        }
 
         $discovered = [];
+        $added_keys = []; // Track what we've already added to prevent duplicates
+        $processed_boxes = []; // Track processed meta boxes to prevent duplicates
 
         if (!function_exists('rwmb_get_registry')) {
-            self::$fields_cache = [];
-            return self::$fields_cache;
+            self::save_to_cache([]);
+            return [];
         }
 
         $meta_boxes = rwmb_get_registry('meta_box')->all();
 
         foreach ($meta_boxes as $meta_box_id => $meta_box) {
+            // Skip if we've already processed this meta box
+            if (in_array($meta_box_id, $processed_boxes, true)) {
+                continue;
+            }
+            $processed_boxes[] = $meta_box_id;
+
+            // Skip ACF meta boxes - ACF registers with MetaBox but uses specific IDs
+            if (isset($meta_box->meta_box['id'])) {
+                $box_id = $meta_box->meta_box['id'];
+                // Check for ACF patterns
+                if (strpos($box_id, 'acf-') === 0 ||
+                    strpos($box_id, 'group_') === 0 ||
+                    isset($meta_box->meta_box['_is_acf'])) {
+                    continue;
+                }
+            }
+
             $fields = $meta_box->meta_box['fields'] ?? [];
 
             if (empty($fields)) {
@@ -111,56 +138,65 @@ final class MetaBoxIntegration extends BaseIntegration {
                 }
 
                 foreach ($parsed as $parsed_field) {
-                    // Normalize segments for token/conditional names (convert dashes to underscores)
-                    $normalized_meta = self::normalize_segment($parsed_field['meta_name']);
-                    $normalized_group = self::normalize_segment($parsed_field['post_type']);
+                    // Track all post types to process (pattern post type + config post types)
+                    $all_post_types = array_merge([$parsed_field['post_type']], $post_types);
+                    $all_post_types = array_unique($all_post_types);
 
-                    $discovered[] = [
-                        'meta_name' => $parsed_field['meta_name'],
-                        'full_field_name' => $field_id,
-                        'post_type' => $parsed_field['post_type'],
-                        'type' => $parsed_field['type'],
-                        'field_type' => $field['type'] ?? 'text',
-                        'token_name' => $normalized_group . '_' . $normalized_meta,
-                        'conditional_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_group . '_' . $normalized_meta,
-                        'label' => self::generate_label($parsed_field['meta_name']),
-                        'group' => self::format_post_type_label($parsed_field['post_type']) . ' (auto)',
-                        'group_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_group,
-                        'compare_options' => self::build_compare_options($field['type'] ?? 'text'),
-                        'integration' => 'metabox',
-                        'field_object' => $field,
-                    ];
+                    foreach ($all_post_types as $target_post_type) {
+                        // Normalize segments for token/conditional names (convert dashes to underscores)
+                        $normalized_meta = self::normalize_segment($parsed_field['meta_name']);
+                        $normalized_group = self::normalize_segment($target_post_type);
 
-                    // Also add for configured post types
-                    foreach ($post_types as $config_post_type) {
-                        if ($config_post_type === $parsed_field['post_type']) {
+                        // Create unique key for this exact field + post type + type combination
+                        $unique_key = $parsed_field['type'] . '|' . $normalized_group . '|' . $normalized_meta . '|' . $field_id;
+
+                        if (in_array($unique_key, $added_keys, true)) {
                             continue;
                         }
-
-                        $normalized_config_group = self::normalize_segment($config_post_type);
 
                         $discovered[] = [
                             'meta_name' => $parsed_field['meta_name'],
                             'full_field_name' => $field_id,
-                            'post_type' => $config_post_type,
+                            'post_type' => $target_post_type,
                             'type' => $parsed_field['type'],
                             'field_type' => $field['type'] ?? 'text',
-                            'token_name' => $normalized_config_group . '_' . $normalized_meta,
-                            'conditional_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_config_group . '_' . $normalized_meta,
+                            'token_name' => $normalized_group . '_' . $normalized_meta,
+                            'conditional_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_group . '_' . $normalized_meta,
                             'label' => self::generate_label($parsed_field['meta_name']),
-                            'group' => self::format_post_type_label($config_post_type) . ' (auto)',
-                            'group_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_config_group,
+                            'group' => self::format_post_type_label($target_post_type) . ' (auto)',
+                            'group_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_group,
                             'compare_options' => self::build_compare_options($field['type'] ?? 'text'),
                             'integration' => 'metabox',
                             'field_object' => $field,
+                            'meta_box_id' => $meta_box_id, // Add for debugging
                         ];
+                        $added_keys[] = $unique_key;
                     }
                 }
             }
         }
 
-        self::$fields_cache = $discovered;
-        return self::$fields_cache;
+        // Final deduplication pass - ensure each token/condition is only added once
+        $final_discovered = [];
+        $final_keys = [];
+
+        foreach ($discovered as $field) {
+            // For tokens, the token_name must be unique
+            // For conditions, the conditional_key must be unique
+            if ($field['type'] === 'token') {
+                $final_key = 'token|' . $field['token_name'];
+            } else {
+                $final_key = 'condition|' . $field['conditional_key'];
+            }
+
+            if (!isset($final_keys[$final_key])) {
+                $final_discovered[] = $field;
+                $final_keys[$final_key] = true;
+            }
+        }
+
+        self::save_to_cache($final_discovered);
+        return $final_discovered;
     }
 
     /**
@@ -285,15 +321,21 @@ final class MetaBoxIntegration extends BaseIntegration {
 
                     $attachment_id = null;
 
-                    // Extract attachment ID from array
+                    // Handle different MetaBox return formats
                     if (is_array($value)) {
+                        // MetaBox array format (single_image, image_advanced, etc.)
                         if (isset($value['ID'])) {
                             $attachment_id = $value['ID'];
                         } elseif (isset($value[0]) && is_array($value[0]) && isset($value[0]['ID'])) {
+                            // Gallery/multiple images - get first
                             $attachment_id = $value[0]['ID'];
                         }
                     } elseif (is_numeric($value)) {
+                        // Numeric ID
                         $attachment_id = $value;
+                    } elseif (is_string($value) && !empty($value)) {
+                        // URL string - convert to ID
+                        $attachment_id = attachment_url_to_postid($value);
                     }
 
                     // Verify attachment exists and return as ARRAY (Bricks expects array)
@@ -349,15 +391,13 @@ final class MetaBoxIntegration extends BaseIntegration {
      */
     public static function register_conditionals_group(array $groups): array {
         $fields = self::get_discovered_fields();
-        $group_keys = [];
 
         foreach ($fields as $field) {
-            if ($field['type'] === 'condition' && !in_array($field['group_key'], $group_keys, true)) {
+            if ($field['type'] === 'condition' && !self::group_exists($groups, $field['group_key'])) {
                 $groups[] = [
                     'name' => $field['group_key'],
                     'label' => $field['group'],
                 ];
-                $group_keys[] = $field['group_key'];
             }
         }
 

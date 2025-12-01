@@ -18,6 +18,13 @@ use AB\BricksAutoToken\Abstracts\BaseIntegration;
  */
 final class ACFIntegration extends BaseIntegration {
     /**
+     * Cache for discovered fields (override parent to prevent sharing)
+     *
+     * @var array|null
+     */
+    protected static ?array $fields_cache = null;
+
+    /**
      * Conditional group prefix
      */
     private const CONDITIONAL_PREFIX = 'ab_auto';
@@ -73,21 +80,33 @@ final class ACFIntegration extends BaseIntegration {
      * @return array
      */
     public static function get_discovered_fields(): array {
-        // Temporarily disable cache - will add proper invalidation later
-        // if (self::$fields_cache !== null) {
-        //     return self::$fields_cache;
-        // }
+        // Check cache first
+        $cached = self::get_cached_fields();
+        if ($cached !== false) {
+            return $cached;
+        }
 
         $discovered = [];
+        $added_keys = []; // Track what we've already added to prevent duplicates
 
         if (!function_exists('acf_get_field_groups')) {
-            self::$fields_cache = [];
-            return self::$fields_cache;
+            self::save_to_cache([]);
+            return [];
         }
 
         $field_groups = acf_get_field_groups();
+        $processed_fields = []; // Track processed field keys to prevent duplicates
+        $processed_groups = []; // Track processed group keys to prevent duplicates
 
         foreach ($field_groups as $group) {
+            // Skip if we've already processed this group
+            if (isset($group['key']) && in_array($group['key'], $processed_groups, true)) {
+                continue;
+            }
+            if (isset($group['key'])) {
+                $processed_groups[] = $group['key'];
+            }
+
             $fields = acf_get_fields($group['key']);
 
             if (!$fields) {
@@ -98,6 +117,14 @@ final class ACFIntegration extends BaseIntegration {
             $post_types = self::get_field_group_post_types($group);
 
             foreach ($fields as $field) {
+                // Skip if we've already processed this exact field key
+                if (isset($field['key']) && in_array($field['key'], $processed_fields, true)) {
+                    continue;
+                }
+                if (isset($field['key'])) {
+                    $processed_fields[] = $field['key'];
+                }
+
                 $parsed = self::parse_field_pattern($field['name']);
 
                 if (!$parsed) {
@@ -105,56 +132,64 @@ final class ACFIntegration extends BaseIntegration {
                 }
 
                 foreach ($parsed as $parsed_field) {
-                    // Normalize segments for token/conditional names (convert dashes to underscores)
-                    $normalized_meta = self::normalize_segment($parsed_field['meta_name']);
-                    $normalized_group = self::normalize_segment($parsed_field['post_type']);
+                    // Track all post types to process (pattern post type + location post types)
+                    $all_post_types = array_merge([$parsed_field['post_type']], $post_types);
+                    $all_post_types = array_unique($all_post_types);
 
-                    $discovered[] = [
-                        'meta_name' => $parsed_field['meta_name'],
-                        'full_field_name' => $field['name'],
-                        'post_type' => $parsed_field['post_type'],
-                        'type' => $parsed_field['type'],
-                        'field_type' => $field['type'] ?? 'text',
-                        'token_name' => $normalized_group . '_' . $normalized_meta,
-                        'conditional_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_group . '_' . $normalized_meta,
-                        'label' => self::generate_label($parsed_field['meta_name']),
-                        'group' => self::format_post_type_label($parsed_field['post_type']) . ' (auto)',
-                        'group_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_group,
-                        'compare_options' => self::build_compare_options($field['type'] ?? 'text'),
-                        'integration' => 'acf',
-                        'field_object' => $field,
-                    ];
+                    foreach ($all_post_types as $target_post_type) {
+                        // Normalize segments for token/conditional names (convert dashes to underscores)
+                        $normalized_meta = self::normalize_segment($parsed_field['meta_name']);
+                        $normalized_group = self::normalize_segment($target_post_type);
 
-                    // Also add for location rule post types
-                    foreach ($post_types as $location_post_type) {
-                        if ($location_post_type === $parsed_field['post_type']) {
+                        // Create unique key for this exact field + post type + type combination
+                        $unique_key = $parsed_field['type'] . '|' . $normalized_group . '|' . $normalized_meta . '|' . $field['name'];
+
+                        if (in_array($unique_key, $added_keys, true)) {
                             continue;
                         }
-
-                        $normalized_location_group = self::normalize_segment($location_post_type);
 
                         $discovered[] = [
                             'meta_name' => $parsed_field['meta_name'],
                             'full_field_name' => $field['name'],
-                            'post_type' => $location_post_type,
+                            'post_type' => $target_post_type,
                             'type' => $parsed_field['type'],
                             'field_type' => $field['type'] ?? 'text',
-                            'token_name' => $normalized_location_group . '_' . $normalized_meta,
-                            'conditional_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_location_group . '_' . $normalized_meta,
+                            'token_name' => $normalized_group . '_' . $normalized_meta,
+                            'conditional_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_group . '_' . $normalized_meta,
                             'label' => self::generate_label($parsed_field['meta_name']),
-                            'group' => self::format_post_type_label($location_post_type) . ' (auto)',
-                            'group_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_location_group,
+                            'group' => self::format_post_type_label($target_post_type) . ' (auto)',
+                            'group_key' => self::CONDITIONAL_PREFIX . '_' . $normalized_group,
                             'compare_options' => self::build_compare_options($field['type'] ?? 'text'),
                             'integration' => 'acf',
                             'field_object' => $field,
                         ];
+                        $added_keys[] = $unique_key;
                     }
                 }
             }
         }
 
-        self::$fields_cache = $discovered;
-        return self::$fields_cache;
+        // Final deduplication pass - ensure each token/condition is only added once
+        $final_discovered = [];
+        $final_keys = [];
+
+        foreach ($discovered as $field) {
+            // For tokens, the token_name must be unique
+            // For conditions, the conditional_key must be unique
+            if ($field['type'] === 'token') {
+                $final_key = 'token|' . $field['token_name'];
+            } else {
+                $final_key = 'condition|' . $field['conditional_key'];
+            }
+
+            if (!isset($final_keys[$final_key])) {
+                $final_discovered[] = $field;
+                $final_keys[$final_key] = true;
+            }
+        }
+
+        self::save_to_cache($final_discovered);
+        return $final_discovered;
     }
 
     /**
@@ -278,7 +313,7 @@ final class ACFIntegration extends BaseIntegration {
             if ($field['type'] === 'token' && $field['token_name'] === $tag_name) {
                 $field_type = $field['field_type'] ?? '';
 
-                // For image context, return attachment ID
+                // For image context, return attachment ID as array
                 if ($context === 'image') {
                     $value = function_exists('get_field')
                         ? get_field($field['full_field_name'], $post_id)
@@ -286,13 +321,19 @@ final class ACFIntegration extends BaseIntegration {
 
                     $attachment_id = null;
 
-                    // Extract attachment ID from array (ACF array format)
+                    // Handle different ACF return formats:
+                    // 1. Image Array (default): array with ID, url, sizes, etc.
+                    // 2. Image ID: numeric value
+                    // 3. Image URL: string URL (need to get ID from URL)
+
                     if (is_array($value)) {
+                        // Image Array format
                         if (isset($value['ID'])) {
                             $attachment_id = $value['ID'];
                         } elseif (isset($value['id'])) {
                             $attachment_id = $value['id'];
                         } elseif (isset($value[0]) && is_array($value[0])) {
+                            // Gallery format
                             if (isset($value[0]['ID'])) {
                                 $attachment_id = $value[0]['ID'];
                             } elseif (isset($value[0]['id'])) {
@@ -300,8 +341,11 @@ final class ACFIntegration extends BaseIntegration {
                             }
                         }
                     } elseif (is_numeric($value)) {
-                        // Return numeric ID as-is
+                        // Image ID format
                         $attachment_id = $value;
+                    } elseif (is_string($value) && !empty($value)) {
+                        // Image URL format - need to get the attachment ID from the URL
+                        $attachment_id = attachment_url_to_postid($value);
                     }
 
                     // Verify attachment exists and return as ARRAY (Bricks expects array)
@@ -357,15 +401,13 @@ final class ACFIntegration extends BaseIntegration {
      */
     public static function register_conditionals_group(array $groups): array {
         $fields = self::get_discovered_fields();
-        $group_keys = [];
 
         foreach ($fields as $field) {
-            if ($field['type'] === 'condition' && !in_array($field['group_key'], $group_keys, true)) {
+            if ($field['type'] === 'condition' && !self::group_exists($groups, $field['group_key'])) {
                 $groups[] = [
                     'name' => $field['group_key'],
                     'label' => $field['group'],
                 ];
-                $group_keys[] = $field['group_key'];
             }
         }
 

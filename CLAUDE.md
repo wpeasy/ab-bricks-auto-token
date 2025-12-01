@@ -127,6 +127,29 @@ This eliminates manual token creation and ensures dynamic data is available cons
 - Includes troubleshooting tips and cache behavior documentation
 - No settings page required - everything works via field naming conventions
 
+## Version 1.0.2 Release Notes
+
+### Critical Cache Bug Fix
+- **Root Cause Identified**: Static properties in PHP parent classes are shared across all child classes unless explicitly overridden
+- **Issue**: The `$fields_cache` property in `BaseIntegration` was shared between `ACFIntegration` and `MetaBoxIntegration`
+- **Symptom**: When ACF cached its fields first, MetaBox would return ACF's cached data, causing duplicate tokens and missing fields
+- **Solution**: Both child classes now explicitly declare their own `protected static ?array $fields_cache = null;` property
+
+### Deduplication Improvements
+- **Final Deduplication Pass**: Added secondary deduplication ensuring each `token_name` and `conditional_key` appears only once
+- **Unique Key Tracking**: Enhanced primary loop to prevent duplicates during initial field discovery
+- **ACF Meta Box Filtering**: MetaBox integration now properly filters out ACF meta boxes to prevent cross-discovery
+
+### Cache Strategy Update
+- **Cache Now Fully Functional**: In-request static cache works correctly with separate properties per integration
+- **Transient Cache**: Optional WordPress transient caching also works properly
+- **Performance**: No performance degradation - proper caching maintained throughout
+
+### Testing Recommendations
+- Clear WordPress object cache after updating to ensure clean state
+- Verify all tokens from both ACF and MetaBox appear in Bricks dropdown
+- Check that no duplicate tokens appear after cache is populated
+
 ## Version 1.0.1 Release Notes
 
 ### Image Field Support
